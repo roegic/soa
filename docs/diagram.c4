@@ -1,0 +1,96 @@
+specification {
+    element person {
+        style {
+            shape person
+            color amber
+        }
+    }
+    element softwareSystem
+    element container
+    element component
+}
+
+model {
+  user = person "Пользователь" "Пользователь Социальной сети"
+
+  socialNetwork = softwareSystem "Social Network" {
+    apiGateway = container "API Gateway" {
+      description "Маршрутизация запросов и управление доступом"
+      technology "Python"
+    }
+
+    webapp = container "Веб-приложение" "Предоставляет интерфейс Social Network" "JavaScript, React"
+
+    userService = container "User Service" {
+      description "Аутентификация пользователей и управление ими"
+      technology "Python"
+    }
+
+    postsService = container "Post Service" {
+      description "Создание, удаление постов, комментариев"
+      technology "Python, FastAPI"
+    }
+
+    statisticsService = container "Statistics Service" {
+      description "Управляет подсчетом лайков, просмотров, комментариев"
+      technology "Python"
+    }
+
+      postgresUsers = container "PostgreSQL" {
+      description "Хранение данных пользователей"
+      technology "Database"
+      style {
+        shape cylinder
+      }
+    }
+
+    postgresPosts = container "PostgreSQL" {
+      description "Хранение постов и комментариев"
+      technology "Database"
+      style {
+        shape cylinder
+      }
+    }
+
+    clickhouse = container "clickhouse" {
+      description "Хранение статистики лайков, просмотров и комментариев постов"
+      technology "Database"
+      style {
+        shape cylinder
+      }
+    }
+
+    redis = container "Redis" {
+      description "Кэширует"
+      technology "In-memory data store"
+    }
+
+    kafka = container "Kafka" {
+      description "Обмен событиями между сервисами"
+      technology "Message Broker"
+      style {
+        shape queue
+      }
+    }
+  }
+
+
+  user -> webapp  "Взаимодействие с UI"
+  webapp -> apiGateway "Отправка запросов через REST API"
+  apiGateway -> userService "Маршрутизирует" "JSON/HTTPS"
+  apiGateway -> postsService "Маршрутизирует" "JSON/HTTPS"
+  apiGateway -> statisticsService "Маршрутизирует" "JSON/HTTPS"
+  userService -> postgresUsers "Читает/Пишет" "SQL"
+  postsService -> postgresPosts "Читает/Пишет" "SQL"
+  statisticsService -> clickhouse "Читает/Пишет"
+  apiGateway -> kafka "Публикует" "post_events, comments_events"
+  statisticsService -> kafka "Подписывается" "post_events, comments_events"
+  apiGateway -> redis "Кэширование данных пользователей"
+
+}
+
+views {
+   view index {
+        include *
+    }
+}
