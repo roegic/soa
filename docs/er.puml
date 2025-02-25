@@ -1,0 +1,93 @@
+@startuml
+
+entity "Users" as users {
+    user_id : INT <<PK>>
+    --
+    username : VARCHAR(50)
+    email : VARCHAR(100)
+    password_hash : VARCHAR(255)
+    registration_date : DateTime
+    last_login_date : DateTime
+}
+
+entity "User Profile" as user_profiles {
+    profile_id : INT <<PK>>
+    --
+    user_id : INT <<FK>> 
+    first_name : VARCHAR(50)
+    last_name : VARCHAR(50)
+    date_of_birth : DATE
+    bio : TEXT
+}
+
+entity "user_blocked_users" {
+    block_id : INT <<PK>>
+    --
+    user_id : INT <<FK>> 
+    blocked_user_id : INT <<FK>> 
+    blocked_at : DateTime
+    reason : VARCHAR(255)
+}
+
+entity "Posts" as posts {
+    post_id : INT <<PK>>
+    --
+    user_id : INT
+    content : TEXT
+    created_at : DateTime
+    title : VARCHAR(255)
+}
+
+entity "Comments" as comments {
+    comment_id : INT <<PK>>
+    --
+    post_id : INT <<FK>> 
+    user_id : INT <<FK>> 
+    content : TEXT
+    created_at : DateTime
+}
+
+entity "Replies" as replies {
+    id : INT <<PK>>
+    --
+    comment_id : INT <<FK>> 
+    reply_id : INT <<FK>>
+}
+
+entity "Post Views Statistics" as post_views_stats {
+    view_id : INT <<PK>>
+    --
+    post_id : INT
+    user_id : INT
+    last_view_timestamp : DateTime
+    view_cnt : INT
+}
+
+entity "Post Likes Statistics" as post_likes_stats {
+    like_id : INT <<PK>>
+    --
+    post_id : INT
+    user_id : INT
+    like_timestamp : DateTime
+    reaction_type : VARCHAR(10) "Like or Dislike"
+}
+
+entity "Post Comments Statistics" as post_comments_stats {
+    comment_id : INT <<PK>>
+    --
+    post_id : INT
+    user_id : INT
+    comment_timestamp : DateTime
+    comment_length : INT
+}
+
+users ||--|| user_profiles : "has"
+users ||--o{ user_blocked_users : "blocks"
+users ||--o{ posts : "writes"
+users ||--o{ comments : "writes"
+posts ||--o{ comments : "has"
+comments ||--o{ replies : "has"
+posts ||--o{ post_views_stats : "tracks"
+posts ||--o{ post_likes_stats : "tracks"
+posts ||--o{ post_comments_stats : "tracks"
+@enduml
