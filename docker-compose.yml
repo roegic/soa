@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:14
+    container_name: user_db
+    restart: always
+    environment:
+      POSTGRES_USER: student
+      POSTGRES_PASSWORD: verystrongpassword
+      POSTGRES_DB: user_service
+    ports:
+      - "5433:5432"
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
+
+  user_service:
+    build: ./users_service
+    container_name: user_service
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: "postgresql://student:verystrongpassword@user_db:5432/user_service"
+      JWT_SECRET_KEY: "super-duper-secret-key"
+    ports:
+      - "5002:5000"
+
+  gateway_service:
+    build: ./gateway
+    container_name: gateway_service
+    restart: always
+    depends_on:
+      - user_service
+    environment:
+      USER_SERVICE_URL: "http://user_service:5000"
+    ports:
+      - "4001:4000"
+
+  test_service:
+      build:
+        context: .
+        dockerfile: ./tests/Dockerfile
+      container_name: test_service
+      networks:
+        - none
+      environment:
+        USER_SERVICE_URL: "http://user_service:5000"
+        DATABASE_URL: 'sqlite:///:memory:'
+      profiles:
+        - test
+
+volumes:
+  user_db_data:
