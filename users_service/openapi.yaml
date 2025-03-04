@@ -1,0 +1,237 @@
+openapi: 3.0.0
+info:
+  title: User Service API
+  version: 1.0.0
+
+paths:
+  /register:
+    post:
+      summary: Регистрация нового пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegisterRequest'
+      responses:
+        '201':
+          description: Пользователь успешно зарегистрирован
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Неверный запрос - неверные учетные данные
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /login:
+    post:
+      summary: Аутентификация пользователя и получение токена доступа
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+      responses:
+        '200':
+          description: Успешная аутентификация
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+        '401':
+          description: Неверные учетные данные
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Неверный запрос. Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /users/profile:
+    get:
+      security:
+        - BearerAuth: []
+      summary: Получение профиля текущего пользователя
+      responses:
+        '200':
+          description: Информация о профиле пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          description: Требуется аутентификация
+  /users/update_profile:
+    post:
+      security:
+        - BearerAuth: []
+      summary: Обновление профиля текущего пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdateRequest'
+      responses:
+        '200':
+          description: Профиль пользователя успешно обновлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Неверный запрос. Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '401':
+          description: Требуется аутентификация
+
+  /users/{username}:
+    get:
+      summary: Получение профиля пользователя по юзернейму пользователя
+      parameters:
+        - in: path
+          name: username
+          required: true
+          description: Имя пользователя для получения профиля
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Информация о профиле пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '404':
+          description: Пользователь не найден
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    UserRegisterRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Имя пользователя для регистрации
+          maxLength: 50
+        password:
+          type: string
+          description: Пароль пользователя
+        email:
+          type: string
+          format: email
+          description: Электронная почта пользователя
+      required:
+        - username
+        - password
+        - email
+
+    UserLoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Имя пользователя для входа
+        password:
+          type: string
+          description: Пароль пользователя
+      required:
+        - username
+        - password
+
+    UserProfileUpdateRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+          description: Имя пользователя
+          maxLength: 50
+        last_name:
+          type: string
+          description: Фамилия пользователя
+          maxLength: 50
+        email:
+          type: string
+          format: email
+          description: Электронная почта пользователя
+        phone_number:
+          type: string
+          description: Номер телефона пользователя
+          maxLength: 15
+        birthday:
+          type: string
+          format: date
+          description: Дата рождения пользователя (YYYY-MM-DD)
+
+    UserProfileResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID пользователя
+        username:
+          type: string
+          description: Имя пользователя
+        email:
+          type: string
+          format: email
+          description: Электронная почта пользователя
+        first_name:
+          type: string
+          description: Имя пользователя
+        last_name:
+          type: string
+          description: Фамилия пользователя
+        phone_number:
+          type: string
+          description: Номер телефона пользователя
+        birthday:
+          type: string
+          format: date
+          description: Дата рождения пользователя (YYYY-MM-DD)
+        created_time:
+          type: string
+          format: date-time
+          description: Время создания профиля
+        updated_time:
+          type: string
+          format: date-time
+          description: Время последнего обновления профиля
