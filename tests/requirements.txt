@@ -1,0 +1,7 @@
+pytest
+flask
+flask_sqlalchemy
+flask_jwt_extended
+requests
+PyYAML
+jsonschema

@@ -1,0 +1,240 @@
+openapi: 3.0.0
+info:
+  title: API Gateway
+  version: 1.0.0
+servers:
+  - url: http://localhost:4001
+paths:
+  /register:
+    post:
+      summary: Проксирует запрос регистрации пользователя в User Service
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegisterRequest'
+      responses:
+        '201':
+          description: Успешная регистрация пользователя (проксированный ответ от User Service)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRegisterResponse'
+        '400':
+          description: Ошибка запроса (проксированный ответ от User Service)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /login:
+    post:
+      summary: Проксирует запрос аутентификации пользователя в User Service
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+      responses:
+        '200':
+          description: Успешная аутентификация (проксированный ответ от User Service)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLoginResponse'
+        '401':
+          description: Введены неверные данные для входа (проксированный ответ от User Service)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Ошибка запроса (проксированный ответ от User Service)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /users/myprofile:
+    get:
+      summary: Проксирует запрос получения профиля текущего пользователя в User Service
+      responses:
+        '200':
+          description: Информация о профиле пользователя (проксированный ответ от User Service)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '404':
+          description: Пользователь не найден (проксированный ответ от User Service)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/<username>:
+    get:
+      summary: Проксирует запрос получения профиля пользователя по имени пользователя в User Service
+      parameters:
+        - in: path
+          name: username
+          required: true
+          description: Имя пользователя для получения профиля
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Информация о профиле пользователя (проксированный ответ от User Service)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '404':
+          description: Пользователь не найден (проксированный ответ от User Service)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/update_profile:
+    put:
+      summary: Проксирует запрос обновления профиля пользователя в User Service
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdateRequest'
+      responses:
+        '200':
+          description: Профиль пользователя успешно обновлен (проксированный ответ от User Service)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Ошибка при запросе (проксированный ответ от User Service)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Пользователь не найден (проксированный ответ от User Service)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    UserRegisterRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Имя пользователя для регистрации
+          maxLength: 50
+        password:
+          type: string
+          description: Пароль пользователя
+        email:
+          type: string
+          format: email
+          description: Электронная почта пользователя
+      required:
+        - username
+        - password
+        - email
+
+    UserLoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Имя пользователя для входа
+        password:
+          type: string
+          description: Пароль пользователя
+      required:
+        - username
+        - password
+
+    UserProfileUpdateRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+          description: Имя пользователя
+          maxLength: 100
+        last_name:
+          type: string
+          description: Фамилия пользователя
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          description: Электронная почта пользователя
+        phone_number:
+          type: string
+          description: Номер телефона пользователя
+          maxLength: 20
+        birthday:
+          type: string
+          format: date
+          description: Дата рождения пользователя (DD-MM-YYYY)
+
+    UserProfileResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+          description: Имя пользователя
+        email:
+          type: string
+          format: email
+          description: Электронная почта пользователя
+        first_name:
+          type: string
+          description: Имя пользователя
+        last_name:
+          type: string
+          description: Фамилия пользователя
+        phone_number:
+          type: string
+          description: Номер телефона пользователя
+        birthday:
+          type: string
+          format: date
+          description: Дата рождения пользователя (YYYY-MM-DD)
+        created_time:
+          type: string
+          format: date-time
+          description: Время создания профиля
+        updated_time:
+          type: string
+          format: date-time
+          description: Время последнего обновления профиля
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      example:
+        message: "Success"
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      example:
+        error: "Error message"
