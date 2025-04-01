@@ -1,0 +1,249 @@
+openapi: 3.0.0
+info:
+  title: API сервиса постов
+  description: API для управления постами
+  version: 1.0.0
+servers:
+  - url: http://localhost:50051
+tags:
+  - name: posts
+    description: Операции с постами
+paths:
+  /posts:
+    post:
+      tags: [posts]
+      summary: Создать новый пост
+      description: Создание нового поста в блоге
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostCreateRequest'
+      responses:
+        '201':
+          description: Пост успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '403':
+          description: Доступ запрещен
+        '500':
+          description: Внутренняя ошибка сервера
+
+    get:
+      tags: [posts]
+      summary: Получить список постов
+      description: Получение списка постов с пагинацией
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/creatorId'
+      responses:
+        '200':
+          description: Список постов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+        '500':
+          description: Внутренняя ошибка сервера
+
+  /posts/{id}:
+    get:
+      tags: [posts]
+      summary: Получить пост по ID
+      description: Получение детальной информации о посте
+      parameters:
+        - $ref: '#/components/parameters/postId'
+        - $ref: '#/components/parameters/creatorId'
+      responses:
+        '200':
+          description: Детали поста
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '404':
+          description: Пост не найден
+        '403':
+          description: Доступ запрещен
+        '500':
+          description: Внутренняя ошибка сервера
+
+    put:
+      tags: [posts]
+      summary: Обновить пост
+      description: Обновление информации о посте
+      parameters:
+        - $ref: '#/components/parameters/postId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostUpdateRequest'
+      responses:
+        '200':
+          description: Пост обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '404':
+          description: Пост не найден
+        '403':
+          description: Доступ запрещен
+        '500':
+          description: Внутренняя ошибка сервера
+
+    delete:
+      tags: [posts]
+      summary: Удалить пост
+      description: Удаление поста по идентификатору
+      parameters:
+        - $ref: '#/components/parameters/postId'
+        - $ref: '#/components/parameters/creatorId'
+      responses:
+        '200':
+          description: Пост удален
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Пост успешно удален"
+        '404':
+          description: Пост не найден
+        '403':
+          description: Доступ запрещен
+        '500':
+          description: Внутренняя ошибка сервера
+
+components:
+  parameters:
+    postId:
+      name: id
+      in: path
+      description: Идентификатор поста
+      required: true
+      schema:
+        type: integer
+    creatorId:
+      name: creator_id
+      in: query
+      description: Фильтр по ID автора
+      required: false
+      schema:
+        type: integer
+    page:
+      name: page
+      in: query
+      description: Номер страницы
+      required: false
+      schema:
+        type: integer
+        default: 1
+    pageSize:
+      name: page_size
+      in: query
+      description: Количество элементов на странице
+      required: false
+      schema:
+        type: integer
+        default: 10
+
+  schemas:
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Уникальный идентификатор поста
+          example: 1
+        title:
+          type: string
+          description: Заголовок поста
+          example: "Мой первый пост"
+        description:
+          type: string
+          description: Содержание поста
+          example: "Это мой первый блог-пост"
+        creator_id:
+          type: integer
+          description: ID автора поста
+          example: 123
+        created_date:
+          type: string
+          format: date-time
+          description: Дата создания
+          example: "2023-01-01T00:00:00Z"
+        updated_date:
+          type: string
+          format: date-time
+          description: Дата последнего обновления
+          example: "2023-01-02T00:00:00Z"
+        is_private:
+          type: boolean
+          description: Признак приватности
+          example: false
+        tags:
+          type: array
+          description: Теги поста
+          items:
+            type: string
+          example: ["технологии", "программирование"]
+
+    PostCreateRequest:
+      type: object
+      required: [title, creator_id]
+      properties:
+        title:
+          type: string
+          description: Заголовок нового поста
+          example: "Новый пост"
+        description:
+          type: string
+          description: Содержание поста
+          example: "Текст нового поста"
+        creator_id:
+          type: integer
+          description: ID автора
+          example: 123
+        is_private:
+          type: boolean
+          description: Сделать пост приватным
+          default: false
+        tags:
+          type: array
+          description: Список тегов
+          items:
+            type: string
+          example: ["технологии"]
+
+    PostUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Новый заголовок
+          example: "Обновленный заголовок"
+        description:
+          type: string
+          description: Новое содержание
+          example: "Обновленный текст"
+        is_private:
+          type: boolean
+          description: Изменить видимость поста
+          example: true
+        tags:
+          type: array
+          description: Обновленный список тегов
+          items:
+            type: string
+          example: ["технологии", "обновление"]

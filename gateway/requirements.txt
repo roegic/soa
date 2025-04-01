@@ -1,2 +1,5 @@
 flask
 requests
+grpcio
+grpcio-tools
+flask_jwt_extended

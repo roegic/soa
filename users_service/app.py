@@ -65,14 +65,14 @@ def login():
     if not user or not check_password_hash(user.hashed_password, password):
         return jsonify({"message": "Invalid username or password"}), 401
 
-    access_token = create_access_token(identity=username)
+    access_token = create_access_token(identity=str(user.id))
     return jsonify(access_token=access_token), 200
 
 @app.route("/users/profile", methods=["GET"])
 @jwt_required()
 def get_profile():
     current_user = get_jwt_identity()
-    user = User.query.filter_by(username=current_user).first()
+    user = User.query.filter_by(id=current_user).first()
 
     if not user:
         return jsonify({"message": f"User not found"}), 404
@@ -109,7 +109,7 @@ def get_user_by_username(username):
 def update_user():
     current_user = get_jwt_identity()
     data = request.get_json()
-    user = User.query.filter_by(username=current_user).first()
+    user = User.query.filter_by(id=current_user).first()
 
     is_valid, error_message = validate_request("UserProfileUpdateRequest", data)
     if not is_valid:
