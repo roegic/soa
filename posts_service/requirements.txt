@@ -1,0 +1,6 @@
+grpcio
+grpcio-tools
+Flask-SQLAlchemy
+psycopg2-binary
+Flask
+SQLAlchemy

@@ -5,3 +5,9 @@ flask_jwt_extended
 requests
 PyYAML
 jsonschema
+grpcio
+grpcio-tools
+Flask-SQLAlchemy
+psycopg2-binary
+Flask
+SQLAlchemy

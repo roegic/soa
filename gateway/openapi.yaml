@@ -66,6 +66,8 @@ paths:
   /users/myprofile:
     get:
       summary: Проксирует запрос получения профиля текущего пользователя в User Service
+      security:
+        - JWT: []
       responses:
         '200':
           description: Информация о профиле пользователя (проксированный ответ от User Service)
@@ -80,7 +82,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /users/<username>:
+  /users/{username}:
     get:
       summary: Проксирует запрос получения профиля пользователя по имени пользователя в User Service
       parameters:
@@ -107,6 +109,8 @@ paths:
   /users/update_profile:
     put:
       summary: Проксирует запрос обновления профиля пользователя в User Service
+      security:
+        - JWT: []
       requestBody:
         required: true
         content:
@@ -128,6 +132,190 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Пользователь не найден (проксированный ответ от User Service)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/create:
+    post:
+      summary: Создает новый пост
+      security:
+        - JWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePostRequest'
+      responses:
+        '201':
+          description: Пост успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Неавторизованный доступ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/{post_id}:
+    get:
+      summary: Получает пост по ID
+      security:
+        - JWT: []
+      parameters:
+        - in: path
+          name: post_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Информация о посте
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '401':
+          description: Неавторизованный доступ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Пост не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Обновляет пост
+      security:
+        - JWT: []
+      parameters:
+        - in: path
+          name: post_id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePostRequest'
+      responses:
+        '200':
+          description: Пост успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Неавторизованный доступ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Удаляет пост
+      security:
+        - JWT: []
+      parameters:
+        - in: path
+          name: post_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Пост успешно удален
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Неавторизованный доступ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/list:
+    get:
+      summary: Получает список постов
+      security:
+        - JWT: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Номер страницы
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+            default: 10
+          description: Количество постов на странице
+      responses:
+        '200':
+          description: Список постов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PostResponse'
+        '401':
+          description: Неавторизованный доступ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
           content:
             application/json:
               schema:
@@ -224,6 +412,79 @@ components:
           type: string
           format: date-time
           description: Время последнего обновления профиля
+
+    CreatePostRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Заголовок поста
+          required: true
+        description:
+          type: string
+          description: Текст поста
+        is_private:
+          type: boolean
+          description: Приватный ли пост
+          default: false
+        tags:
+          type: array
+          items:
+            type: string
+          description: Теги поста
+      required:
+        - title
+
+    UpdatePostRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Заголовок поста
+        description:
+          type: string
+          description: Текст поста
+        is_private:
+          type: boolean
+          description: Приватный ли пост
+        tags:
+          type: array
+          items:
+            type: string
+          description: Теги поста
+
+    PostResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID поста
+        title:
+          type: string
+          description: Заголовок поста
+        description:
+          type: string
+          description: Текст поста
+        creator_id:
+          type: integer
+          description: ID создателя
+        created_date:
+          type: string
+          format: date-time
+          description: Дата создания
+        updated_date:
+          type: string
+          format: date-time
+          description: Дата обновления
+        is_private:
+          type: boolean
+          description: Приватный ли пост
+        tags:
+          type: array
+          items:
+            type: string
+          description: Теги поста
+
     SuccessResponse:
       type: object
       properties:
@@ -231,6 +492,7 @@ components:
           type: string
       example:
         message: "Success"
+
     ErrorResponse:
       type: object
       properties:
@@ -238,3 +500,9 @@ components:
           type: string
       example:
         error: "Error message"
+
+  securitySchemes:
+    JWT:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
