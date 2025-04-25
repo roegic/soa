@@ -204,7 +204,7 @@ def like_post(post_id):
         return jsonify({"error": str(e.details())}), 500
 
 
-@app.route('/posts/<int:post_id>/comments', methods=['POST'])
+@app.route('/posts/<int:post_id>/comment', methods=['POST'])
 @jwt_required()
 def add_comment_to_post(post_id):
     user_id = get_user_id_from_jwt()
@@ -217,7 +217,7 @@ def add_comment_to_post(post_id):
         return jsonify({"error": "Comment text is required"}), 400
 
     try:
-        grpc_request = posts_pb2.AddCommentRequest(entity_id=post_id, user_id=user_id, comment_text=comment_text)
+        grpc_request = posts_pb2.AddCommentRequest(post_id=post_id, user_id=user_id, comment_text=comment_text)
         grpc_response = post_stub.AddCommentToPost(grpc_request)
         return jsonify({
             "id": grpc_response.id,

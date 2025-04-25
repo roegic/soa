@@ -10,7 +10,7 @@ service PostService {
   rpc GetListOfPosts (GetListOfPostsRequest) returns (GetListOfPostsResponse);
   rpc LikePost (LikePostRequest) returns (Empty);
   rpc ViewPost (ViewPostRequest) returns (Empty);
-  rpc AddComment (AddCommentRequest) returns (Comment);
+  rpc AddCommentToPost (AddCommentRequest) returns (Comment);
   rpc GetComments (GetCommentsRequest) returns (GetCommentsResponse);
 }
 

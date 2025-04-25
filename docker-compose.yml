@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: verystrongpassword
       POSTGRES_DB: user_service
     ports:
-      - "5433:5432"
+      - "5435:5432"
     volumes:
       - user_db_data:/var/lib/postgresql/data
 
@@ -17,10 +17,12 @@ services:
     container_name: user_service
     restart: always
     depends_on:
+      - kafka
       - db
     environment:
       DATABASE_URL: "postgresql://student:verystrongpassword@user_db:5432/user_service"
       JWT_SECRET_KEY: "super-duper-secret-key"
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
     ports:
       - "5002:5000"
 
@@ -47,9 +49,9 @@ services:
       - posts_db
     environment:
       DATABASE_URL: "postgresql://student:verystrongpassword@posts_db:5432/posts_db"
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
     ports:
       - "50051:50051"
-
 
   gateway_service:
     build:
@@ -67,51 +69,46 @@ services:
     ports:
       - "4001:4000"
 
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper
+
   kafka:
-    image: bitnami/kafka:latest
+    image: confluentinc/cp-kafka:7.4.0
     container_name: kafka
-    restart: always
+    depends_on:
+      - zookeeper
     ports:
       - "9092:9092"
     environment:
-      KAFKA_CFG_NODE_ID: 0
-      KAFKA_CFG_PROCESS_ROLES: "controller,broker"
-      KAFKA_CFG_LISTENERS: "controller://:9093,broker://:9092"
-      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "0@kafka:9093"
-      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: controller
-      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: broker
-      KAFKA_CFG_ADVERTISED_LISTENERS: "broker://localhost:9092"
-      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_CFG_LOG_DIRS: "/bitnami/kafka/logs"
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     volumes:
-      - kafka_data:/bitnami/kafka
-    networks:
-      - app_network
+      - kafka_data:/var/lib/kafka/data
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
     ports:
       - "8080:8080"
+    depends_on:
+      - kafka
     environment:
-      KAFKA_CLUSTERS_0_NAME: Local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
-
-  test_service:
-      build:
-        context: .
-        dockerfile: ./tests/Dockerfile
-      container_name: test_service
-      environment:
-        USER_SERVICE_URL: "http://user_service:5000"
-        POSTS_SERVICE_URL: "posts-service:50051"
-        DATABASE_URL: 'sqlite:///:memory:'
-      profiles:
-        - test
-
-
+      KAFKA_CLUSTERS_0_NAME: "local-kafka"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:9092"
+      KAFKA_CLUSTERS_0_ZOOKEEPER: "zookeeper:2181"
 
 volumes:
   posts_db_data:
   user_db_data:
+  kafka_data:
+  zookeeper_data:
