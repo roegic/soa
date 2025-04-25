@@ -4,3 +4,4 @@ Flask-SQLAlchemy
 psycopg2-binary
 Flask
 SQLAlchemy
+confluent_kafka

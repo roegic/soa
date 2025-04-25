@@ -6,6 +6,8 @@ import os
 from database_post import db, Post
 import posts_pb2, posts_pb2_grpc
 
+from confluent_kafka import Producer
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
     'POSTS_DATABASE_URL',
@@ -14,6 +16,12 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
+kafka_bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+engagement_topic = "engagement-events"
+view_topic = "view-events"
+comment_topic = "comment-events"
+
+producer = Producer({'bootstrap.servers': kafka_bootstrap_servers})
 
 
 class PostServicer(posts_pb2_grpc.PostServiceServicer):
@@ -124,6 +132,61 @@ class PostServicer(posts_pb2_grpc.PostServiceServicer):
                 ))
 
             return response
+
+    def LikePost(self, request, context):
+        user_id = request.user_id
+        post_id = request.post_id
+
+        event = {
+            "event_type": "like",
+            "user_id": user_id,
+            "entity_type": "post",
+            "entity_id": post_id,
+            "event_time": datetime.utcnow().isoformat()
+        }
+        producer.produce(engagement_topic, key=str(post_id), value=str(event))
+        producer.flush()
+        print(f"User liked! topic {engagement_topic}")
+
+        return posts_pb2.Empty()
+
+    def ViewPost(self, request, context):
+        user_id = request.user_id
+        post_id = request.post_id
+        event = {
+            "event_type": "view",
+            "user_id": user_id,
+            "entity_type": "post",
+            "entity_id": post_id,
+            "event_time": datetime.utcnow().isoformat()
+        }
+        producer.produce(engagement_topic, key=str(post_id), value=str(event))
+        producer.flush()
+        print(f"User viewed! topic {engagement_topic}")
+
+        return posts_pb2.Empty()
+
+    def AddComment(self, request, context):
+        user_id = request.user_id
+        post_id = request.post_id
+        comment_text = request.comment_text
+        event = {
+            "event_type": "comment",
+            "user_id": user_id,
+            "entity_type": "post",
+            "entity_id": post_id,
+            "comment_text": comment_text,
+            "event_time": datetime.utcnow().isoformat()
+        }
+        producer.produce(engagement_topic, key=str(post_id), value=str(event))
+        producer.flush()
+        print(f"User commented! topic {engagement_topic}")
+
+        return posts_pb2.Comment(id=1, user_id=user_id, comment_text=comment_text,
+                                 created_at=datetime.now().isoformat())
+
+    def GetComments(self, request, context):
+        return posts_pb2.GetListOfPostsResponse()
 
 
 def start():
