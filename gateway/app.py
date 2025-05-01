@@ -189,5 +189,64 @@ def list_posts():
     except grpc.RpcError as e:
         return jsonify({"error": str(e.details())}), 500
 
+@app.route('/posts/<int:post_id>/like', methods=['POST'])
+@jwt_required()
+def like_post(post_id):
+    user_id = get_user_id_from_jwt()
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    try:
+        grpc_request = posts_pb2.LikePostRequest(post_id=post_id, user_id=user_id)
+        grpc_response = post_stub.LikePost(grpc_request)
+        return jsonify({"message": "Post Liked!"}), 200
+    except grpc.RpcError as e:
+        return jsonify({"error": str(e.details())}), 500
+
+
+@app.route('/posts/<int:post_id>/comment', methods=['POST'])
+@jwt_required()
+def add_comment_to_post(post_id):
+    user_id = get_user_id_from_jwt()
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json()
+    comment_text = data.get("comment_text")
+    if not comment_text:
+        return jsonify({"error": "Comment text is required"}), 400
+
+    try:
+        grpc_request = posts_pb2.AddCommentRequest(post_id=post_id, user_id=user_id, comment_text=comment_text)
+        grpc_response = post_stub.AddCommentToPost(grpc_request)
+        return jsonify({
+            "id": grpc_response.id,
+            "user_id": grpc_response.user_id,
+            "comment_text": grpc_response.comment_text,
+            "created_at": grpc_response.created_at
+        }), 201
+    except grpc.RpcError as e:
+        return jsonify({"error": str(e.details())}), 500
+
+@app.route('/posts/<int:post_id>/comments', methods=['GET'])
+def get_comments_for_post(post_id):
+    page = request.args.get("page", 1, type=int)
+    page_size = request.args.get("page_size", 10, type=int)
+    try:
+        grpc_request = posts_pb2.GetCommentsRequest(entity_id=post_id, page=page, page_size=page_size)
+        grpc_response = post_stub.GetCommentsForPost(grpc_request)
+        comments = []
+        for comment in grpc_response.comments:
+            comments.append({
+                "id": comment.id,
+                "user_id": comment.user_id,
+                "comment_text": comment.comment_text,
+                "created_at": comment.created_at
+            })
+        return jsonify(comments), 200
+    except grpc.RpcError as e:
+        return jsonify({"error": str(e.details())}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=4000)

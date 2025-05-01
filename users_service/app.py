@@ -1,6 +1,10 @@
+import json
 import os
 from datetime import datetime
+from distutils.command.register import register
+from uuid import uuid4
 
+from confluent_kafka import Producer
 from flask import Flask, request, jsonify
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -15,6 +19,12 @@ app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "my-super-duper-secre
 db.init_app(app)
 jwt = JWTManager(app)
 openapi_file_path = os.path.join(os.path.dirname(__file__), "openapi.yaml")
+
+kafka_bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+register_topic = "register-events"
+
+producer = Producer({'bootstrap.servers': kafka_bootstrap_servers})
+
 with open(openapi_file_path, "r") as f:
     openapi_spec = yaml.safe_load(f)
 
@@ -46,6 +56,24 @@ def register():
 
     db.session.add(new_user)
     db.session.commit()
+
+    event = {
+        "event_id": str(uuid4()),
+        "event_type": "user_registered",
+        "timestamp": datetime.utcnow().isoformat(),
+        "user": {
+            "id": new_user.id,
+            "username": new_user.username,
+            "email": new_user.email
+        }
+    }
+
+    producer.produce(
+        register_topic,
+        key=str(new_user.id),
+        value=json.dumps(event)
+    )
+    producer.flush()
 
     return jsonify({"message": "User registered successfully"}), 201
 

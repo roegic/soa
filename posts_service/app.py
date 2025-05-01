@@ -1,3 +1,6 @@
+import json
+from uuid import uuid4
+
 import grpc
 from concurrent import futures
 from datetime import datetime, timezone
@@ -5,6 +8,8 @@ from flask import Flask
 import os
 from database_post import db, Post
 import posts_pb2, posts_pb2_grpc
+
+from confluent_kafka import Producer
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
@@ -14,9 +19,30 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
+kafka_bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+like_topic = "like-events"
+view_topic = "view-events"
+comment_topic = "comment-events"
+
+producer = Producer({'bootstrap.servers': kafka_bootstrap_servers})
 
 
 class PostServicer(posts_pb2_grpc.PostServiceServicer):
+    def _publish_view_event(self, user_id, post_id):
+        event = {
+            "event_id": str(uuid4()),
+            "event_type": "view",
+            "user_id": user_id,
+            "entity_type": "post",
+            "entity_id": post_id,
+            "event_time": datetime.utcnow().isoformat()
+        }
+        try:
+            producer.produce(view_topic, key=str(post_id), value=json.dumps(event))
+            producer.flush()
+        except Exception as e:
+            print(f"Error sending Kafka message: {e}")
+
     def CreatePost(self, request, context):
         with app.app_context():
             new_post = Post(
@@ -48,6 +74,7 @@ class PostServicer(posts_pb2_grpc.PostServiceServicer):
 
             if post.is_private and post.creator_id != request.creator_id:
                 context.abort(grpc.StatusCode.PERMISSION_DENIED, "Access denied")
+            self._publish_view_event(post.creator_id, post.id)
 
             return posts_pb2.Post(
                 id=post.id,
@@ -122,8 +149,50 @@ class PostServicer(posts_pb2_grpc.PostServiceServicer):
                     is_private=post.is_private,
                     tags=post.tags
                 ))
+                self._publish_view_event(post.creator_id, post.id)
 
             return response
+
+    def LikePost(self, request, context):
+        user_id = request.user_id
+        post_id = request.post_id
+
+        event = {
+            "event_id": str(uuid4()),
+            "event_type": "like",
+            "user_id": user_id,
+            "entity_type": "post",
+            "entity_id": post_id,
+            "event_time": datetime.utcnow().isoformat()
+        }
+        producer.produce(like_topic, key=str(post_id), value=json.dumps(event))
+        producer.flush()
+        print(f"User liked! topic {like_topic}")
+
+        return posts_pb2.Empty()
+
+
+    def AddCommentToPost(self, request, context):
+        user_id = request.user_id
+        post_id = request.post_id
+        comment_text = request.comment_text
+        event = {
+            "event_id": str(uuid4()),
+            "event_type": "comment",
+            "user_id": user_id,
+            "entity_type": "post",
+            "entity_id": post_id,
+            "comment_text": comment_text,
+            "event_time": datetime.utcnow().isoformat()
+        }
+        producer.produce(comment_topic, key=str(post_id), value=json.dumps(event))
+        producer.flush()
+
+        return posts_pb2.Comment(id=1, user_id=user_id, comment_text=comment_text,
+                                 created_at=datetime.now().isoformat())
+
+    def GetComments(self, request, context):
+        return
 
 
 def start():

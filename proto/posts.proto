@@ -3,11 +3,15 @@ syntax = "proto3";
 package post;
 
 service PostService {
-  rpc CreatePost (CreatePostRequest) returns (Post) {}
-  rpc GetPost (GetPostRequest) returns (Post) {}
-  rpc UpdatePost (UpdatePostRequest) returns (Post) {}
-  rpc DeletePost (DeletePostRequest) returns (Empty) {}
-  rpc GetListOfPosts (GetListOfPostsRequest) returns (GetListOfPostsResponse) {}
+  rpc CreatePost (CreatePostRequest) returns (Post);
+  rpc GetPost (GetPostRequest) returns (Post);
+  rpc UpdatePost (UpdatePostRequest) returns (Post);
+  rpc DeletePost (DeletePostRequest) returns (Empty);
+  rpc GetListOfPosts (GetListOfPostsRequest) returns (GetListOfPostsResponse);
+  rpc LikePost (LikePostRequest) returns (Empty);
+  rpc ViewPost (ViewPostRequest) returns (Empty);
+  rpc AddCommentToPost (AddCommentRequest) returns (Comment);
+  rpc GetComments (GetCommentsRequest) returns (GetCommentsResponse);
 }
 
 message Post {
@@ -56,6 +60,39 @@ message GetListOfPostsRequest {
 
 message GetListOfPostsResponse {
   repeated Post posts = 1;
+}
+
+message LikePostRequest {
+  int64 user_id = 1;
+  int64 post_id = 2;
+}
+
+message ViewPostRequest {
+  int64 user_id = 1;
+  int64 post_id = 2;
+}
+
+message AddCommentRequest {
+  int64 user_id = 1;
+  int64 post_id = 2;
+  string comment_text = 3;
+}
+
+message GetCommentsRequest {
+  int64 post_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message GetCommentsResponse {
+  repeated Comment comments = 1;
+}
+
+message Comment {
+  int64 id = 1;
+  int64 user_id = 2;
+  string comment_text = 3;
+  string created_at = 4;
 }
 
 message Empty {}
